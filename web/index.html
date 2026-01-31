@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Escobar 2.0</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>Escobar <span class="muted">2.0</span></h1>
+        <p class="subtitle">Local PC ↔ Mobile file transfer over Wi-Fi / Hotspot</p>
+      </div>
+      <div class="qrbox">
+        <img id="qr" alt="QR" />
+        <div class="muted small">Scan to connect</div>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Connection</h2>
+      <div id="status" class="grid"></div>
+      <div class="hint">
+        If your phone can’t open the link, allow <b>Escobar2.exe</b> through Windows Firewall (Private network).
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Upload to this PC <span class="muted small">(Saved to Inbox)</span></h2>
+      <div id="drop" class="drop">
+        <div class="drop-title">Drag & drop files here</div>
+        <div class="muted small">or</div>
+        <label class="btn">
+          Choose files
+          <input id="filePick" type="file" multiple />
+        </label>
+      </div>
+
+      <div class="progress">
+        <div class="bar" id="bar"></div>
+      </div>
+      <div class="muted small" id="progText"></div>
+      <div id="uploadResult" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Download from PC <span class="muted small">(Files in Share folder)</span></h2>
+      <div class="row">
+        <button class="btn solid" id="refresh">Refresh list</button>
+        <div class="muted small" id="sharePath"></div>
+      </div>
+      <div id="files" class="files"></div>
+    </section>
+
+    <footer class="muted small foot">
+      Tip: Put files you want to send into the <b>Share</b> folder. Uploads land in <b>Inbox</b>.
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
