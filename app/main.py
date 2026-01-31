@@ -9,23 +9,35 @@ from typing import List
 
 import qrcode
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from app.settings import APP_NAME, DEFAULT_PORT, get_paths
 from app.net import get_lan_ip
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# =====================================================
+# PyInstaller-safe base path resolution
+# =====================================================
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
+
 WEB_DIR = BASE_DIR / "web"
+if not WEB_DIR.exists():
+    raise RuntimeError(f"Web directory missing: {WEB_DIR}")
 
 paths = get_paths()
 app = FastAPI(title=APP_NAME)
 
-# Serve static files
+# Static files (safe for EXE)
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 
 
+# =====================================================
+# Helpers
+# =====================================================
 def safe_name(name: str) -> str:
     name = name.replace("\\", "/").split("/")[-1]
     name = name.replace("..", "").strip()
@@ -34,6 +46,9 @@ def safe_name(name: str) -> str:
     return name
 
 
+# =====================================================
+# Routes
+# =====================================================
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (WEB_DIR / "index.html").read_text(encoding="utf-8")
@@ -64,6 +79,7 @@ def qr_png():
 @app.post("/api/upload")
 async def upload(files: List[UploadFile] = File(...)):
     saved = []
+
     for f in files:
         filename = safe_name(f.filename or "file")
         dst = paths.inbox / filename
@@ -88,10 +104,7 @@ def list_files():
     files = []
     for p in paths.share.glob("*"):
         if p.is_file():
-            files.append({
-                "name": p.name,
-                "bytes": p.stat().st_size,
-            })
+            files.append({"name": p.name, "bytes": p.stat().st_size})
     return {"ok": True, "files": files}
 
 
@@ -114,6 +127,9 @@ def delete(filename: str):
     return {"ok": True}
 
 
+# =====================================================
+# App startup (logging-safe for EXE)
+# =====================================================
 def open_browser():
     try:
         ip = get_lan_ip()
@@ -137,7 +153,15 @@ def main():
     if not no_browser:
         open_browser()
 
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    # 🔒 CRITICAL FIX:
+    # Disable uvicorn logging config to avoid isatty crash in PyInstaller
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_config=None,
+        log_level="warning",
+    )
 
 
 if __name__ == "__main__":
