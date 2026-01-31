@@ -1,11 +1,23 @@
 from __future__ import annotations
 
-import io
+# =====================================================
+# Bootstrap import path (fixes ModuleNotFoundError: app)
+# =====================================================
 import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# =====================================================
+# Standard imports
+# =====================================================
+import io
 import time
 import zipfile
 import webbrowser
-from pathlib import Path
+from datetime import datetime, timedelta
 from typing import List
 
 import qrcode
@@ -17,15 +29,14 @@ import uvicorn
 from app.settings import APP_NAME, DEFAULT_PORT, get_paths
 from app.net import get_lan_ip
 from app.tray import start_tray
-from datetime import datetime, timedelta
 
-# =========================
-# PyInstaller-safe paths
-# =========================
+# =====================================================
+# PyInstaller-safe base path
+# =====================================================
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     BASE_DIR = Path(sys._MEIPASS)
 else:
-    BASE_DIR = Path(__file__).resolve().parent.parent
+    BASE_DIR = PROJECT_ROOT
 
 WEB_DIR = BASE_DIR / "web"
 paths = get_paths()
@@ -33,15 +44,14 @@ paths = get_paths()
 app = FastAPI(title=APP_NAME)
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 
-SESSION_ID = str(int(time.time()))  # QR refresh per launch
+SESSION_ID = str(int(time.time()))
 
-
-# =========================
-# Auto-clean (older than 2 days)
-# =========================
+# =====================================================
+# Auto-clean old files
+# =====================================================
 def auto_clean(days=2):
     cutoff = datetime.now() - timedelta(days=days)
-    for folder in [paths.inbox, paths.share]:
+    for folder in (paths.inbox, paths.share):
         for f in folder.glob("*"):
             if f.is_file() and datetime.fromtimestamp(f.stat().st_mtime) < cutoff:
                 try:
@@ -49,10 +59,9 @@ def auto_clean(days=2):
                 except Exception:
                     pass
 
-
-# =========================
+# =====================================================
 # Helpers
-# =========================
+# =====================================================
 def safe_name(name: str) -> str:
     name = name.replace("\\", "/").split("/")[-1]
     name = name.replace("..", "").strip()
@@ -60,14 +69,12 @@ def safe_name(name: str) -> str:
         raise HTTPException(status_code=400, detail="Invalid filename")
     return name
 
-
-# =========================
+# =====================================================
 # Routes
-# =========================
+# =====================================================
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (WEB_DIR / "index.html").read_text(encoding="utf-8")
-
 
 @app.get("/api/status")
 def status():
@@ -78,7 +85,6 @@ def status():
         "session": SESSION_ID,
     }
 
-
 @app.get("/qr.png")
 def qr_png():
     url = f"http://{get_lan_ip()}:{DEFAULT_PORT}/?s={SESSION_ID}"
@@ -86,7 +92,6 @@ def qr_png():
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return Response(content=buf.getvalue(), media_type="image/png")
-
 
 @app.post("/api/upload")
 async def upload(files: List[UploadFile] = File(...)):
@@ -102,9 +107,7 @@ async def upload(files: List[UploadFile] = File(...)):
                 out.write(chunk)
 
         saved.append(dst.name)
-
     return {"ok": True, "files": saved}
-
 
 @app.get("/api/files")
 def list_files():
@@ -116,7 +119,6 @@ def list_files():
         ]
     }
 
-
 @app.get("/api/download/{filename}")
 def download(filename: str):
     p = paths.share / safe_name(filename)
@@ -124,10 +126,9 @@ def download(filename: str):
         raise HTTPException(404)
     return FileResponse(p, filename=p.name)
 
-
 @app.get("/api/download-zip")
 def download_zip():
-    def zip_stream():
+    def stream():
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
             for f in paths.share.glob("*"):
@@ -137,15 +138,14 @@ def download_zip():
         yield from buf
 
     return StreamingResponse(
-        zip_stream(),
+        stream(),
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=escobar_share.zip"}
+        headers={"Content-Disposition": "attachment; filename=escobar_share.zip"},
     )
 
-
-# =========================
-# App start
-# =========================
+# =====================================================
+# Startup
+# =====================================================
 def main():
     auto_clean()
     start_tray(f"http://{get_lan_ip()}:{DEFAULT_PORT}/")
@@ -157,7 +157,6 @@ def main():
         log_config=None,
         log_level="warning",
     )
-
 
 if __name__ == "__main__":
     main()
