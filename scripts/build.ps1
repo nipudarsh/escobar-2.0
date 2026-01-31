@@ -7,11 +7,7 @@ if (!(Test-Path $PYTHON)) {
 }
 
 Write-Host "Using Python:" -ForegroundColor Green
-Write-Host $PYTHON
 & $PYTHON -c "import sys; print(sys.version)"
-
-Write-Host "Upgrading pip..." -ForegroundColor Green
-& $PYTHON -m pip install --upgrade pip
 
 Write-Host "Installing requirements..." -ForegroundColor Green
 & $PYTHON -m pip install -r requirements.txt
@@ -25,6 +21,8 @@ Write-Host "Building Escobar2.exe..." -ForegroundColor Green
   --name Escobar2 `
   --onefile `
   --noconsole `
+  --hidden-import=pystray `
+  --hidden-import=PIL `
   --add-data "web;web" `
   app\main.py
 
