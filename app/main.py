@@ -133,6 +133,7 @@ def open_browser():
 def main():
     # Allow: Escobar2.exe --no-browser --port 8787
     no_browser = "--no-browser" in sys.argv
+
     port = DEFAULT_PORT
     if "--port" in sys.argv:
         i = sys.argv.index("--port")
@@ -141,6 +142,13 @@ def main():
                 port = int(sys.argv[i + 1])
             except ValueError:
                 port = DEFAULT_PORT
+
+    if not no_browser:
+        open_browser()
+
+    # Important: host 0.0.0.0 so mobile can access
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+
 
     # Update global default_port usage for endpoints
     global DEFAULT_PORT
