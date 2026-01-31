@@ -1,25 +1,95 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Escobar 2.0</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <h1>Escobar 2.0</h1>
+  <div class="bg-glow"></div>
 
-  <img src="/qr.png" width="160"><br><br>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">E2</div>
+        <div class="brand-text">
+          <h1>Escobar <span class="muted">2.0</span></h1>
+          <p class="sub">Fast local file transfer — Wi-Fi / Hotspot / Same LAN</p>
+        </div>
+      </div>
 
-  <h2>📱 Upload to PC</h2>
-  <div id="drop">Drag & drop files here</div>
-  <input id="filePick" type="file" multiple>
+      <div class="qr-card">
+        <div class="qr-title">Scan to connect</div>
+        <img id="qr" class="qr" src="/qr.png" alt="QR code" />
+        <div class="qr-link" id="pcUrl">Loading…</div>
+        <button class="btn btn-ghost" id="copyUrl">Copy link</button>
+      </div>
+    </header>
 
-  <div class="progress"><div id="bar"></div></div>
-  <div id="result"></div>
+    <main class="grid">
+      <!-- Upload -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Upload to PC</h2>
+            <p class="muted small">Files will be saved into <b>Inbox</b> on the PC.</p>
+          </div>
+          <div class="pill" id="inboxPill">Inbox: …</div>
+        </div>
 
-  <h2>💻 Download from PC</h2>
-  <button id="zip">Download All (ZIP)</button>
-  <div id="files"></div>
+        <div id="drop" class="dropzone">
+          <div class="dz-icon">⬆</div>
+          <div class="dz-text">
+            <div class="dz-title">Drag & drop files here</div>
+            <div class="dz-sub muted">or choose files</div>
+          </div>
+          <label class="btn btn-solid">
+            Choose files
+            <input id="filePick" type="file" multiple />
+          </label>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress">
+            <div id="bar" class="bar"></div>
+          </div>
+          <div id="progText" class="muted small"></div>
+        </div>
+
+        <div id="uploadResult" class="result"></div>
+      </section>
+
+      <!-- Download -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Download from PC</h2>
+            <p class="muted small">Put files into <b>Share</b> folder on PC, then refresh here.</p>
+          </div>
+          <div class="pill" id="sharePill">Share: …</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-solid" id="refresh">Refresh</button>
+          <button class="btn btn-ghost" id="zip">Download all (ZIP)</button>
+        </div>
+
+        <div id="files" class="file-list">
+          <div class="muted small">Loading…</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="hint">
+        <b>Reality check:</b> Cross-device drag & drop is not supported by browsers.  
+        Mobile → PC uses Upload. PC → Mobile uses Download / ZIP.
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>
