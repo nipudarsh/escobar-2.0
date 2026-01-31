@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import os
 import sys
 import time
 import webbrowser
@@ -23,23 +22,21 @@ WEB_DIR = BASE_DIR / "web"
 paths = get_paths()
 app = FastAPI(title=APP_NAME)
 
-# Serve static assets
+# Serve static files
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 
 
 def safe_name(name: str) -> str:
-    # Prevent directory traversal
     name = name.replace("\\", "/").split("/")[-1]
-    name = name.strip().replace("..", "")
+    name = name.replace("..", "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="Invalid filename.")
+        raise HTTPException(status_code=400, detail="Invalid filename")
     return name
 
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
-    return HTMLResponse(html)
+    return (WEB_DIR / "index.html").read_text(encoding="utf-8")
 
 
 @app.get("/api/status")
@@ -71,67 +68,61 @@ async def upload(files: List[UploadFile] = File(...)):
         filename = safe_name(f.filename or "file")
         dst = paths.inbox / filename
 
-        # Avoid overwrite collisions
         if dst.exists():
-            stem = dst.stem
-            suffix = dst.suffix
-            dst = paths.inbox / f"{stem}_{int(time.time())}{suffix}"
+            dst = paths.inbox / f"{dst.stem}_{int(time.time())}{dst.suffix}"
 
         with dst.open("wb") as out:
             while True:
-                chunk = await f.read(1024 * 1024)  # 1MB chunks
+                chunk = await f.read(1024 * 1024)
                 if not chunk:
                     break
                 out.write(chunk)
 
         saved.append({"name": dst.name, "bytes": dst.stat().st_size})
+
     return {"ok": True, "saved": saved}
 
 
 @app.get("/api/files")
-def list_share_files():
-    items = []
-    for p in sorted(paths.share.glob("*")):
+def list_files():
+    files = []
+    for p in paths.share.glob("*"):
         if p.is_file():
-            st = p.stat()
-            items.append({
+            files.append({
                 "name": p.name,
-                "bytes": st.st_size,
-                "mtime": int(st.st_mtime),
+                "bytes": p.stat().st_size,
             })
-    return {"ok": True, "files": items}
+    return {"ok": True, "files": files}
 
 
 @app.get("/api/download/{filename}")
 def download(filename: str):
     filename = safe_name(filename)
     p = paths.share / filename
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail="File not found.")
-    return FileResponse(path=str(p), filename=p.name, media_type="application/octet-stream")
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(str(p), filename=p.name)
 
 
 @app.delete("/api/files/{filename}")
-def delete_file(filename: str):
+def delete(filename: str):
     filename = safe_name(filename)
     p = paths.share / filename
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail="File not found.")
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="File not found")
     p.unlink()
     return {"ok": True}
 
 
 def open_browser():
-    ip = get_lan_ip()
-    url = f"http://{ip}:{DEFAULT_PORT}/"
     try:
-        webbrowser.open(url)
+        ip = get_lan_ip()
+        webbrowser.open(f"http://{ip}:{DEFAULT_PORT}/")
     except Exception:
         pass
 
 
 def main():
-    # Allow: Escobar2.exe --no-browser --port 8787
     no_browser = "--no-browser" in sys.argv
 
     port = DEFAULT_PORT
@@ -146,18 +137,6 @@ def main():
     if not no_browser:
         open_browser()
 
-    # Important: host 0.0.0.0 so mobile can access
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
-
-
-    # Update global default_port usage for endpoints
-    global DEFAULT_PORT
-    DEFAULT_PORT = port
-
-    if not no_browser:
-        open_browser()
-
-    # Important: host 0.0.0.0 so mobile can access
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 
